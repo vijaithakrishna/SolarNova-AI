@@ -1,0 +1,99 @@
+import time
+import numpy as np
+import cv2
+import tensorflow as tf
+from tensorflow.keras.models import load_model
+from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
+from tensorflow.keras.preprocessing import image
+import RPi.GPIO as GPIO
+import numpy as np
+GPIO.setmode(GPIO.BOARD)
+# Define stepper motor pins
+step_pin = 12 # Step pin
+dir_pin = 11 # Direction pin
+# Initialize the stepper motor
+GPIO.setup(step_pin, GPIO.OUT)
+GPIO.setup(dir_pin, GPIO.OUT)
+interpreter = tf.lite.Interpreter(model_path=r"/home/pi/Downloads/tflite model.tflite")
+interpreter.allocate_tensors()
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
+camera = cv2.VideoCapture(0)
+def rotate(steps, direction='clockwise', delay=0.01):
+    # Set the direction
+    if direction == 'clockwise':
+        GPIO.output(dir_pin, GPIO.HIGH)
+    else:
+        GPIO.output(dir_pin, GPIO.LOW)
+
+    # Make steps
+    for _ in range(steps):
+        GPIO.output(step_pin, GPIO.HIGH)
+        time.sleep(delay)
+        GPIO.output(step_pin, GPIO.LOW)
+        time.sleep(delay)
+def clean():
+    # Move forward for cleaning
+    rotate(200)  # Adjust the number of steps as needed
+
+    # Return to initial position
+    rotate(200, direction='counterclockwise')  # Adjust the number of steps as needed
+
+    # Completely deactivate the stepper motor
+    GPIO.output(step_pin, GPIO.LOW)
+    GPIO.output(dir_pin, GPIO.LOW)
+detection_paused = False
+
+while True:
+    # Capture frame-by-frame
+    ret, frame = camera.read()
+
+    # Preprocess the frame
+    img = cv2.resize(frame, (224, 224))
+    img_array = image.img_to_array(img)
+    img_array = np.expand_dims(img_array, axis=0)
+    img_array = preprocess_input(img_array)
+
+    # Make predictions every two seconds
+    if not detection_paused and time.time() % 2 < 0.1:  # Check if it's been 2 seconds (with some tolerance)
+        interpreter.set_tensor(input_details[0]['index'], img_array)
+
+        # Run inference
+        interpreter.invoke()
+
+        # Get the output
+        predictions = interpreter.get_tensor(output_details[0]['index'])
+
+        # Decode predictions
+        class_labels = ['clean', 'dirt']  # Define your class labels here
+        predicted_class = np.argmax(predictions)
+        predicted_label = class_labels[predicted_class]
+        confidence = predictions[0][predicted_class]
+
+        
+        print("Confidence:", confidence)
+        
+        if confidence > 0.9:
+            output_label = "dirt"
+            print("Predicted class:", output_label)
+            clean()
+           
+        else:
+            output_label = "clean"
+            print("Predicted class:", output_label)
+            
+
+        
+
+    # Display the resulting frame
+    cv2.imshow('Camera', frame)
+    
+    # Exit loop when 'q' is pressed
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+    
+camera.release()
+cv2.destroyAllWindows()
+
+# Cleanup GPIO
+GPIO.cleanup()
