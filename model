@@ -1,0 +1,2 @@
+pretrained_model_path = "./model/Mobilenet.h5"
+fine_tuned_model_path = "./model/FineTuned_Mobilenet.h5"
