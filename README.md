@@ -107,7 +107,6 @@ You may need to run scripts with sudo on Raspberry Pi for GPIO access:
 
 sudo python src/predict_live.py
 
-Use a powered USB hub if camera or motors draw significant power.
 ---
 
 ## 📚 Publications
