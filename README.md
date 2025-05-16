@@ -51,6 +51,12 @@ Install dependencies:
 
 ### 2. Prepare Dataset
 
+## 📦 Dataset Download
+
+The full Solar Dust Detection dataset (~1 GB) is available via Google Drive:
+
+👉 [Download Detect_solar_dust](https://drive.google.com/drive/folders/1uXCPGOJigdxx9NkeNl-0c5mcr-x5cDJn)
+
 Organize your images into the following structure:
 
 dataset/
